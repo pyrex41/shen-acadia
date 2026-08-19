@@ -1,0 +1,9 @@
+acadia-stuff/
+gen/
+.shen-kernel-cache.bin
+.shen-kernel-cache.*.bin
+*.fasl
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo

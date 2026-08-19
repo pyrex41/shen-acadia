@@ -1,0 +1,20 @@
+{
+  "name": "shen-acadia",
+  "root": ".",
+  "programs_dir": ".",
+  "default_cwd": ".",
+  "strip_line_prefixes": [
+    "typechecked in ",
+    "loaded"
+  ],
+  "cases": [
+    {
+      "name": "acadia-codec",
+      "mode": "script",
+      "program": "run-tests.shen",
+      "expect": "agreement",
+      "marker": "ALL PASS",
+      "doc": "Shen codec matches the generated Haskell endpoint layout"
+    }
+  ]
+}
