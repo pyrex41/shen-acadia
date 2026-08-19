@@ -1,0 +1,142 @@
+database module PingCx exposing
+  ( ClientSiteID(..)
+  , CustomerID(..)
+  , RecommendationID(..)
+  , ScenarioID(..)
+  , endpoint findFaultRecommendation
+  , endpoint findFaultRecommendationIDs
+  , endpoint findScenarioRecommendation
+  , endpoint getScenarioRecommendations
+  , endpoint linkScenarioRecommendation
+  , endpoint putFaultRecommendation
+  )
+
+import Cookies exposing (Cookies)
+import Rows exposing (..)
+import Security exposing (Unrestricted(..))
+import Sequence as Seq exposing (Sequence)
+import Table exposing (..)
+
+
+type CustomerID = CustomerID UInt64
+type ClientSiteID = ClientSiteID UInt64
+type ScenarioID = ScenarioID UInt64
+type RecommendationID = RecommendationID UInt64
+type ScenarioRecommendationID = ScenarioRecommendationID UInt64
+
+
+type alias FaultRecommendation =
+  { id : RecommendationID
+  , customerId : CustomerID
+  , clientSiteId : ClientSiteID
+  , unitType : String
+  , scenarioTitle : String
+  , recommendation : String
+  }
+
+
+faultRecommendations : Table Unrestricted FaultRecommendation
+faultRecommendations :=
+  table
+    { primary = .id
+    , security = Security.unrestricted
+    , indexes = []
+    , constraints = []
+    }
+
+
+type alias ScenarioRecommendation =
+  { id : ScenarioRecommendationID
+  , instanceFeatureScenarioId : ScenarioID
+  , faultRecommendationId : RecommendationID
+  }
+
+
+scenarioRecommendations : Table Unrestricted ScenarioRecommendation
+scenarioRecommendations :=
+  table
+    { primary = .id
+    , security = Security.unrestricted
+    , indexes = []
+    , constraints = []
+    }
+
+
+scenarioRecommendationIDs : Sequence ScenarioRecommendationID
+scenarioRecommendationIDs :=
+  Seq.uint64 ScenarioRecommendationID
+
+
+putFaultRecommendation :
+  Cookies
+  -> RecommendationID
+  -> CustomerID
+  -> ClientSiteID
+  -> String
+  -> String
+  -> String
+  -> Transaction ()
+putFaultRecommendation _ recommendationId customerId clientSiteId unitType scenarioTitle recommendation =
+  insert faultRecommendations Unrestricted
+    { id = recommendationId
+    , customerId = customerId
+    , clientSiteId = clientSiteId
+    , unitType = unitType
+    , scenarioTitle = scenarioTitle
+    , recommendation = recommendation
+    }
+
+
+findFaultRecommendation :
+  Cookies -> CustomerID -> ClientSiteID -> String -> String -> Transaction String
+findFaultRecommendation _ customerId clientSiteId unitType scenarioTitle =
+  access faultRecommendations Unrestricted
+    |> filter (\r -> r.customerId == customerId)
+    |> filter (\r -> r.clientSiteId == clientSiteId)
+    |> filter (\r -> r.unitType == unitType)
+    |> filter (\r -> r.scenarioTitle == scenarioTitle)
+    |> map .recommendation
+    |> select
+
+
+findFaultRecommendationIDs :
+  Cookies -> CustomerID -> ClientSiteID -> String -> String -> Transaction (Rows RecommendationID)
+findFaultRecommendationIDs _ customerId clientSiteId unitType scenarioTitle =
+  access faultRecommendations Unrestricted
+    |> filter (\r -> r.customerId == customerId)
+    |> filter (\r -> r.clientSiteId == clientSiteId)
+    |> filter (\r -> r.unitType == unitType)
+    |> filter (\r -> r.scenarioTitle == scenarioTitle)
+    |> map .id
+    |> selectAll
+
+
+linkScenarioRecommendation :
+  Cookies -> ScenarioID -> RecommendationID -> Transaction ()
+linkScenarioRecommendation _ scenarioId recommendationId =
+  let
+    id := Seq.next scenarioRecommendationIDs
+  in
+  insert scenarioRecommendations Unrestricted
+    { id = id
+    , instanceFeatureScenarioId = scenarioId
+    , faultRecommendationId = recommendationId
+    }
+
+
+findScenarioRecommendation :
+  Cookies -> ScenarioID -> Transaction RecommendationID
+findScenarioRecommendation _ scenarioId =
+  access scenarioRecommendations Unrestricted
+    |> filter (\r -> r.instanceFeatureScenarioId == scenarioId)
+    |> map .faultRecommendationId
+    |> select
+
+
+getScenarioRecommendations :
+  Cookies -> ScenarioID -> Transaction (Rows RecommendationID)
+getScenarioRecommendations _ scenarioId =
+  access scenarioRecommendations Unrestricted
+    |> filter (\r -> r.instanceFeatureScenarioId == scenarioId)
+    |> map .faultRecommendationId
+    |> selectAll

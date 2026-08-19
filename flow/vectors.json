@@ -1,0 +1,103 @@
+[
+  {
+    "name": "psi_scope",
+    "scope": 20,
+    "rows": [
+      [1, 10, 20, 200, 30, "Overheat", 2, "AHU", 1]
+    ],
+    "recommendations": [
+      [90, 1, 10, "AHU", "Overheat", "Inspect coil"]
+    ],
+    "existing": [],
+    "expected_inserted": [[30, 90]],
+    "expected_ambiguous": []
+  },
+  {
+    "name": "instance_id_is_not_scope",
+    "scope": 200,
+    "rows": [
+      [1, 10, 20, 200, 30, "Overheat", 2, "AHU", 1]
+    ],
+    "recommendations": [
+      [90, 1, 10, "AHU", "Overheat", "Inspect coil"]
+    ],
+    "existing": [],
+    "expected_inserted": [],
+    "expected_ambiguous": []
+  },
+  {
+    "name": "fleet_failed_exact",
+    "scope": 0,
+    "rows": [
+      [1, 10, 20, 200, 30, "Overheat", 2, "AHU", 1],
+      [1, 10, 20, 200, 31, "Passed", 1, "AHU", 2],
+      [1, 10, 21, 201, 32, "Cold", 2, "FCU", 3],
+      [1, 10, 21, 201, 33, "Humidity", 2, "AHU", 4]
+    ],
+    "recommendations": [
+      [90, 1, 10, "AHU", "Overheat", "Inspect coil"],
+      [91, 1, 10, "AHU", "Passed", "Ignore"],
+      [92, 1, 11, "FCU", "Cold", "Wrong site"],
+      [93, 1, 10, "AHU", "Humidity", "Inspect sensor"]
+    ],
+    "existing": [],
+    "expected_inserted": [[30, 90], [33, 93]],
+    "expected_ambiguous": []
+  },
+  {
+    "name": "blank_unit_preference",
+    "scope": 0,
+    "rows": [
+      [1, 10, 20, 200, 30, "Overheat", 2, "", 1],
+      [1, 10, 20, 200, 30, "Overheat", 2, "AHU", 2]
+    ],
+    "recommendations": [
+      [90, 1, 10, "AHU", "Overheat", "Inspect coil"]
+    ],
+    "existing": [],
+    "expected_inserted": [[30, 90]],
+    "expected_ambiguous": []
+  },
+  {
+    "name": "existing_link",
+    "scope": 0,
+    "rows": [
+      [1, 10, 20, 200, 30, "Overheat", 2, "AHU", 1]
+    ],
+    "recommendations": [
+      [90, 1, 10, "AHU", "Overheat", "Inspect coil"]
+    ],
+    "existing": [[30, 90]],
+    "expected_inserted": [],
+    "expected_ambiguous": []
+  },
+  {
+    "name": "ambiguous_nonblank",
+    "scope": 0,
+    "rows": [
+      [1, 10, 20, 200, 30, "Overheat", 2, "AHU", 1],
+      [1, 10, 20, 200, 30, "Overheat", 2, "FCU", 2]
+    ],
+    "recommendations": [
+      [90, 1, 10, "AHU", "Overheat", "Inspect coil"],
+      [91, 1, 10, "FCU", "Overheat", "Inspect fan"]
+    ],
+    "existing": [],
+    "expected_inserted": [[30, 90]],
+    "expected_ambiguous": [30]
+  },
+  {
+    "name": "duplicate_exact_recommendations",
+    "scope": 0,
+    "rows": [
+      [1, 10, 20, 200, 30, "Overheat", 2, "AHU", 1]
+    ],
+    "recommendations": [
+      [90, 1, 10, "AHU", "Overheat", "Inspect coil"],
+      [91, 1, 10, "AHU", "Overheat", "Inspect coil again"]
+    ],
+    "existing": [],
+    "expected_inserted": [[30, 90], [30, 91]],
+    "expected_ambiguous": []
+  }
+]

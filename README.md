@@ -33,7 +33,7 @@ u32BE moduleId | u32BE endpointId | args
 
 | Arg | Encoding |
 |---|---|
-| `String` | `u32BE Text.length` (character count) + UTF-8 bytes |
+| `String` | `u32BE byte count` + UTF-8 bytes |
 | `UInt64` newtype | `u32BE 8` + `u64BE` |
 
 Responses:
@@ -43,6 +43,11 @@ Responses:
 | `()` | `i32BE 0` |
 | `String` | `i32BE n` (`n >= 0`) + `n` UTF-8 bytes |
 | `[a]` / `Rows` | repeated `u32LE count` + `count` items, ended by `u32LE 0` |
+
+Acadia 0.3.0's generated Haskell names the string-size helper with
+`Text.length`, but the live server rejects non-ASCII requests unless the prefix
+is the UTF-8 byte count. The codec follows the live wire behavior and keeps a
+non-ASCII round-trip in the live test.
 
 This tree's `src/Backend.db` is Acadia's public **foods** example (`01-foods`):
 
@@ -63,6 +68,7 @@ the server drops rows.
 
 ```
 src/Backend.db           foods module (live serve target)
+src/PingCx.db            test-only PingCx recommendation/link module
 acadia.json              Acadia project file
 shen/ac-bytes.shen       encode / decode
 shen/ac-backend.shen     addFood, getFoods, find-fault, link-rec
@@ -95,6 +101,9 @@ Codec tests need a Shen 41.2 launcher. Defaults assume a sibling checkout:
 make test                 # Shen codec goldens (shen-lua)
 make test-go              # same on shen-go
 make bifrost              # shen-lua / shen-go agree
+make exotic-agree EXOTIC1_ROOT=/path/to/exotic-1
+make flow                 # complete recommendation flow vectors
+make gates                # compiler + both ports + Bifrost + live flow
 make bench                # optional Acadia serve + shen-rel comparison
 BENCH_N=1000 make bench
 ```
@@ -112,6 +121,21 @@ The bench starts `acadia serve` on a temp Unix socket, round-trips
 `apple`/`bread` with both the Python client and Shen encode/decode, then times
 N inserts + one `getFoods` on that same server. Row counts include the two
 e2e foods (N+2). It does not write generated Haskell into the tree.
+
+`make exotic-agree` co-loads exotic-1's typed scoring kernel and this endpoint
+codec on both Shen-Go and Shen-Lua. It deliberately does not add database I/O
+to exotic-1's engine worker; a stored-procedure extraction worker should reuse
+the Shen modules without changing the test-engine protocol.
+
+`src/PingCx.db` uses unrestricted security and helper endpoints that exist only
+to prove lookup, Unicode payload, typed ID, and link round-trips. It is not the
+production tenant model or a replacement for the complete stored procedure.
+
+`make flow` executes the extracted recommendation flow over normalized candidate
+rows. Shen-Go and Shen-Lua must select the same scenarios; Acadia performs exact
+recommendation lookup and link persistence; every vector reruns to prove
+idempotency. The remaining production boundary is construction of normalized
+candidates from the legacy join graph and atomic concurrency handling.
 
 ## One run (2026-08-19, macOS, `BENCH_N=1000`)
 
