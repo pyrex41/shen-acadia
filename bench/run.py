@@ -15,7 +15,21 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "host"))
 
 from post import post  # noqa: E402
-from protocol import add_food, dec_strings, dec_unit, find_fault, get_foods, link_rec  # noqa: E402
+from protocol import (  # noqa: E402
+    add_food,
+    dec_string_at,
+    dec_strings,
+    dec_u64,
+    dec_u64s,
+    dec_unit,
+    find_fault,
+    find_fault_ids,
+    find_scenario_rec,
+    get_foods,
+    get_scenario_recs,
+    link_rec,
+    put_fault,
+)
 
 SHEN_LUA = Path(os.environ.get("SHEN_LUA", ROOT.parent / "shen-lua" / "bin" / "shen"))
 SHEN_REL = ROOT.parent / "shen-rel"
@@ -70,12 +84,14 @@ def goldens() -> None:
         "get-foods": get_foods().hex(),
         "find-fault": find_fault(1, 10, "AHU", "Overheat").hex(),
         "link-rec": link_rec(30, 90).hex(),
+        "find-scenario-rec": find_scenario_rec(30).hex(),
     }
     out = shen(
         '(output (cn "add-food-apple " (cn (ac.hex (ac.add-food "apple")) "~%")))',
         '(output (cn "get-foods " (cn (ac.hex (ac.get-foods)) "~%")))',
         '(output (cn "find-fault " (cn (ac.hex (ac.find-fault 1 10 "AHU" "Overheat")) "~%")))',
         '(output (cn "link-rec " (cn (ac.hex (ac.link-rec 30 90)) "~%")))',
+        '(output (cn "find-scenario-rec " (cn (ac.hex (ac.find-scenario-rec 30)) "~%")))',
         load="load.shen",
     )
     got = {}
@@ -96,6 +112,20 @@ def e2e(sock: str) -> None:
     if "apple" not in names or "bread" not in names:
         raise SystemExit(f"e2e getFoods missing rows: {names}")
     print(f"acadia e2e getFoods: {len(names)} rows (contains apple, bread)")
+    recommendation = "Réparer 🔧"
+    dec_unit(post(sock, put_fault(90, 1, 10, "AHU", "Overheat", recommendation)))
+    response = post(sock, find_fault(1, 10, "AHU", "Overheat"))
+    found, end = dec_string_at(response, 0)
+    if found != recommendation or end != len(response):
+        raise SystemExit(f"e2e findFaultRecommendation mismatch: {found!r}")
+    dec_unit(post(sock, link_rec(30, 90)))
+    if dec_u64(post(sock, find_scenario_rec(30))) != 90:
+        raise SystemExit("e2e findScenarioRecommendation mismatch")
+    if dec_u64s(post(sock, find_fault_ids(1, 10, "AHU", "Overheat"))) != [90]:
+        raise SystemExit("e2e findFaultRecommendationIDs mismatch")
+    if dec_u64s(post(sock, get_scenario_recs(30))) != [90]:
+        raise SystemExit("e2e getScenarioRecommendations mismatch")
+    print("acadia e2e PingCx endpoints: recommendation + link PASS")
     with tempfile.TemporaryDirectory() as td:
         req = Path(td) / "req.bin"
         res = Path(td) / "res.bin"
