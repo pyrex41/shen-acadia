@@ -81,7 +81,7 @@ bifrost.suite.json       cross-port agreement
 
 ## Run
 
-Codec tests need a Shen 41.2 launcher. Defaults assume a sibling checkout:
+Codec tests need a Shen 42.0 launcher. Defaults assume a sibling checkout:
 
 | Variable | Default |
 |---|---|
